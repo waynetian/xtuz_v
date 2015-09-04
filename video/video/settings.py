@@ -129,21 +129,6 @@ LOGGING = {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 BT_CLIENT = {'port':6881}
 
 TORRENT_URL_PREFIX = 'http://xtuz-image.oss-cn-beijing.aliyuncs.com/tor_'

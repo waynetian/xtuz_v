@@ -1,5 +1,7 @@
 *.pyc
 *.sqlite3
+*.mp4
+*.3gp
 video/log/
 video/torrent/
-viedo/file/
+video/file/*

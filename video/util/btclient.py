@@ -42,7 +42,7 @@ def save_bt_file(torrent_file):
     params = {
         'ti': info, 
         'save_path': save_path,
-        #'storage_mode': lt.storage_mode_t(1),
+        'storage_mode': lt.storage_mode_t(2),
         'paused': False,
         'auto_managed': True,
         'duplicate_is_error': True}

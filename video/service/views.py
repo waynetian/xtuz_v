@@ -55,7 +55,7 @@ class RetrieveView(TemplateView):
             for i in file_list:
                 r, name = check_format(i.path) 
                 if r:
-                    ret.append('%s/%s' %(hashinfo[8:16], name)) 
+                    ret.append('file/%s/%s' %(torrent_file[8:16], name)) 
             return HttpResponse(json.dumps({'ret': ret, 'code':200}))
         except ObjectDoesNotExist:
             return HttpResponse(json.dumps({'ret': None, 'code':400}))

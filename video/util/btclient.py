@@ -49,6 +49,7 @@ def save_bt_file(torrent_file):
     h = BT_SESSION.add_torrent(params)
     while (not h.is_seed()):
         s = h.status()
+        #print s.state
         state_str = ['queued', 'checking', 'downloading metadata', \
                      'downloading', 'finished', 'seeding', 'allocating']
         info =  '\r%s %.2f%% complete (down: %.1f kb/s up: %.1f kB/s peers: %d) %s %.s' % \
@@ -60,11 +61,16 @@ def save_bt_file(torrent_file):
     BT_SESSION.remove_torrent(h)
     #'''
     compress(save_path)
+    
+    from service.models import File
+    f = File()
+    f.hashinfo = torrent_file[8:-8]
+    f.save()
 
 def downloader():
 
     while True:
-        logger.info('waiting task ')
+        #logger.info('waiting task ')
         if TASK_QUEUE.empty():
             time.sleep(1)
             continue

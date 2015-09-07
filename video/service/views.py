@@ -12,19 +12,20 @@ from django.http import HttpResponse
 from django.views.generic import TemplateView
 tp = ThreadPool()
 
+import libtorrent as lt
 
 def check_format(name):
     vedio_format = ('.mp4', '.avi', '.mov', '.3gp', '.wmv', '.mkv', '.flv')
     import os
     f, ext = os.path.splitext(name)
     if ext.lower() in vedio_format:
-        return (True, f+'.mp4')
+        return (True, f+'.wt.mp4')
     return (False, None)
 
 
 
 
-class DownloadView(TemplateView):
+class CreateView(TemplateView):
     def get(self, request, hashinfo):
         #film = Film.objects.get(hashcode=hashcode)
         url = TORRENT_URL_PREFIX + hashinfo
@@ -37,11 +38,32 @@ class DownloadView(TemplateView):
         f.close()
         #''' 
         #torrent_file = 'torrent/test.torrent'
-        tp.put_download_task(torrent_file)  
+        tp.put_download_task(torrent_file, hashinfo)  
         return HttpResponse('ok')
-        
-from django.core.exceptions import ObjectDoesNotExist
+       
+
+
 class RetrieveView(TemplateView):
+    def get(self, request, hashinfo):
+        ret = tp.retrieve_state(hashinfo)  
+        return HttpResponse(json.dumps({'ret':ret}))
+
+
+class RetrieveAllView(TemplateView):
+    def get(self, request):
+        ret = tp.retrieve_all_state()  
+        return HttpResponse(json.dumps({'ret':ret}))
+      
+
+class DeleteView(TemplateView):
+    def get(self, request, hashinfo):
+        tp.delete_task(hashinfo)  
+        return HttpResponse('ok')
+
+
+ 
+from django.core.exceptions import ObjectDoesNotExist
+class QueryView(TemplateView):
     def get(self, request, hashinfo):
         try:
             o = File.objects.get(hashinfo=hashinfo) 
@@ -55,7 +77,7 @@ class RetrieveView(TemplateView):
             for i in file_list:
                 r, name = check_format(i.path) 
                 if r:
-                    ret.append('file/%s/%s' %(torrent_file[8:16], name)) 
+                    ret.append('/mp4/%s/%s' %(torrent_file[8:16], name)) 
             return HttpResponse(json.dumps({'ret': ret, 'code':200}))
         except ObjectDoesNotExist:
             return HttpResponse(json.dumps({'ret': None, 'code':400}))

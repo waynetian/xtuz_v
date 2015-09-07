@@ -24,6 +24,9 @@ for i in l:
     i.start()
     print i.get_down_rate()
     print i.get_directory_base()
+    print i.get_directory()
+
+
     print i.get_down_total()
     print i.is_complete()
     print i.info_hash

@@ -36,41 +36,6 @@ def compress(save_path):
                 p=subprocess.Popen(cmd, shell=True)
                 ret = p.wait()
  
-def save_bt_file(torrent_file):
-    info = lt.torrent_info(torrent_file)
-    save_path = 'file/%s' %torrent_file[8:16]
-    cmd = "mkdir -p %s" %save_path
-    logger.info(cmd)
-    p=subprocess.Popen(cmd, shell=True)
-    ret = p.wait()
-    #'''   
-    params = {
-        'ti': info, 
-        'save_path': save_path,
-        'storage_mode': lt.storage_mode_t(2),
-        'paused': False,
-        'auto_managed': True,
-        'duplicate_is_error': True}
-    h = BT_SESSION.add_torrent(params)
-    while (not h.is_seed()):
-        s = h.status()
-        #print s.state
-        state_str = ['queued', 'checking', 'downloading metadata', \
-                     'downloading', 'finished', 'seeding', 'allocating']
-        info =  '\r%s %.2f%% complete (down: %.1f kb/s up: %.1f kB/s peers: %d) %s %.s' % \
-                (torrent_file, s.progress * 100, s.download_rate / 1000, s.upload_rate / 1000, \
-                    s.num_peers, state_str[s.state], s.total_download/1000000)
-        logger.info("%s" %info)
-
-        time.sleep(10)
-    BT_SESSION.remove_torrent(h)
-    #'''
-    compress(save_path)
-    
-    from service.models import File
-    f = File()
-    f.hashinfo = torrent_file[8:-8]
-    f.save()
 
 def pool():
 
@@ -84,14 +49,13 @@ def pool():
 
             if i.is_complete() == True:
                 print i.get_directory()
-                i.erase()
                 compress(i.get_directory())
-                t.erase()
 
                 from service.models import File
                 f = File()
                 f.hashinfo = i.info_hash
                 f.save()
+                i.erase()
 
         logger.info(info)
         time.sleep(5)

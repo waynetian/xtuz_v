@@ -14,6 +14,8 @@ class Migration(migrations.Migration):
             name='File',
             fields=[
                 ('hashinfo', models.CharField(max_length=128, serialize=False, primary_key=True)),
+                ('create_time', models.DateTimeField(auto_now_add=True)),
+                ('update_time', models.DateTimeField(auto_now=True)),
             ],
         ),
     ]

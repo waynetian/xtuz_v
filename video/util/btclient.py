@@ -32,6 +32,13 @@ socket.setdefaulttimeout(1)
 sgi = rtorrent.RTorrent('http://localhost/RPC2/')
 
 
+def escape_filename(filename):
+    for i in (' ', '(', ')', '[', ']', '!'):
+        filename = filename.replace(i, '\\'+i)
+    return filename
+
+
+
 def compress(save_path):
     from service.views import check_format
 
@@ -39,6 +46,8 @@ def compress(save_path):
         for i in files:
             f = os.path.join(root, i)         
             r, n = check_format(f)
+            f = escape_filename(f)
+            n = escape_filename(n)
             #f = f.replace(' ', '\ ').replace('(', '\(').replace(')', '\)')
             #n = n.replace(' ', '\ ').replace('(', '\(').replace(')', '\)')
 
@@ -91,9 +100,13 @@ def pool():
                     logger.info('process finish...%s' %i.info_hash)
                     compress(i.get_directory())
                     from service.models import File
-                    f = File()
-                    f.hashinfo = i.info_hash
-                    f.save()
+                    from django.core.exceptions import ObjectDoesNotExist
+                    try:
+                        o = File.objects.get(hashinfo=i.info_hash)
+                    except ObjectDoesNotExist:
+                        f = File()
+                        f.hashinfo = i.info_hash
+                        f.save()
                     i.erase()
                 if i.is_active() == False:
                     i.start()
@@ -116,7 +129,7 @@ def pool():
             logger.error(ex)
         #'''
         #state_logger.info(info)
-        time.sleep(1)
+        time.sleep(5)
  
 
 

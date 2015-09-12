@@ -2,6 +2,9 @@
 import logging
 import subprocess
 logger = logging.getLogger('app')
+state_logger = logging.getLogger('state')
+
+
 
 from video.settings import BT_CLIENT
 
@@ -30,34 +33,44 @@ def compress(save_path):
             f = os.path.join(root, i)         
             r, n = check_format(f)
             if r:
-                cmd = 'ffmpeg -i %s  -y -c:v libx264  -b:v 100k -b:a 50k %s' %(f, n) 
+                cmd = 'ffmpeg -i %s -vf scale=320:-1 -y -c:v libx264  -b:v 100k -b:a 50k %s' %(f, n) 
                 print cmd
-
-                p=subprocess.Popen(cmd, shell=True)
-                ret = p.wait()
+                try:
+                    logger.info(%cmd)
+                    p=subprocess.Popen(cmd, shell=True)
+                    ret = p.wait()
+                except Exception, e:
+                    import traceback
+                    ex = traceback.format_exc()
+                    logger.error(ex)
+                    continue
  
 
 def pool():
-
     while True:
         l=sgi.get_torrents()
         info = ''
         for i in l:
-            info += '\r%s %s %s %s %s' %(i.get_state(), i.get_down_rate(), i.get_down_total, i.is_complete(), i.info_hash)
-            if i.is_active() == False:
-                i.start()
-
-            if i.is_complete() == True:
-                print i.get_directory()
-                compress(i.get_directory())
-
-                from service.models import File
-                f = File()
-                f.hashinfo = i.info_hash
-                f.save()
-                i.erase()
-
-        logger.info(info)
+            try:
+                info += '\r%s %s %s %s %s' %(i.get_state(), i.get_down_rate(), i.get_down_total, i.is_complete(), i.info_hash)
+                if i.is_complete() == True:
+                    # 1. finish 
+                    # 2. compress
+                    # 3. rsync
+                    compress(i.get_directory())
+                    from service.models import File
+                    f = File()
+                    f.hashinfo = i.info_hash
+                    f.save()
+                    i.erase()
+                if i.is_active() == False:
+                    i.start()
+            except Exception, e:
+                import traceback
+                ex = traceback.format_exc()
+                logger.error(ex)
+                continue
+        state_logger.info(info)
         time.sleep(5)
  
 
@@ -70,47 +83,75 @@ class ThreadPool:
         self.t.start()
 
     def put_download_task(self, torrent_file, hashinfo):
-        print 'recv-file', torrent_file 
-        #TASK_QUEUE.put(torrent_file)
-        sgi.load_torrent_simple(torrent_file, 'file', start=False)
-        t = sgi.find_torrent(hashinfo)
-        t.set_directory('/home/downloads/%s' %hashinfo[:8])
-        t.start()
+        try:
+            sgi.load_torrent_simple(torrent_file, 'file', start=False)
+            t = sgi.find_torrent(hashinfo)
+            t.set_directory('/home/downloads/%s' %hashinfo[:8])
+            t.start()
+        except Exception,e:
+            import traceback
+            ex = traceback.format_exc()
+            logger.error(ex)
+ 
 
 
 
     def retrieve_state(self, hashinfo):
-        t = sgi.find_torrent(hashinfo)
-        return  {'state': t.get_state(),
+        try:
+            t = sgi.find_torrent(hashinfo)
+            data = { 
+                 'state': t.get_state(),
                  'is_complete': t.is_complete(),
                  'name': t.get_name(),
                  'down_rate':  t.get_down_rate(),
                  'down_total': t.get_down_total(),
                  'ratio': t.get_ratio(),
+                 'size_bytes', t.get_size_bytes(),
                 }
- 
+            return data
+        except Exception, e:
+            import traceback
+            ex = traceback.format_exc()
+            logger.error(ex)
+            return None 
+
 
     def retrieve_all_state(self):
         l=sgi.get_torrents()
         state_list = []
         for t in l:
-            state = {'state': t.get_state(),
+            try:
+                state = {'state': t.get_state(),
                      'is_complete': t.is_complete(),
                      'name': t.get_name(),
                      'down_rate':  t.get_down_rate(),
                      'down_total': t.get_down_total(),
                      'ratio': t.get_ratio(),
+                     'size_bytes', t.get_size_bytes(),
                      }
-            state_list.append(state)
+                state_list.append(state)
+            except Exception, e:
+                import traceback
+                ex = traceback.format_exc()
+                logger.error(ex)
+                continue
         return state_list
 
 
     def delete_task(self, hashinfo):
-        t = sgi.find_torrent(hashinfo)
-        t.erase()
+        try:
+            t = sgi.find_torrent(hashinfo)
+            t.erase()
+        except Exception, e:
+            import traceback
+            ex = traceback.format_exc()
+            logger.error(ex)
+ 
 
 
+if __name__ == '__main__':
+    compress()
 
-
+ 
 
 

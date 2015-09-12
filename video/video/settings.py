@@ -121,6 +121,16 @@ LOGGING = {
             'filename': './log/app.log',
             'formatter':'standard',
         },
+
+        'state_handler': {
+            'level': 'INFO',
+            'class': 'logging.handlers.TimedRotatingFileHandler',
+            'filename': './log/state.log',
+            'formatter':'standard',
+        },
+
+
+
     },
     'loggers': {
         'app':{
@@ -128,6 +138,14 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False
         },
+
+        'state':{
+            'handlers': ['state_handler'],
+            'level': 'INFO',
+            'propagate': False
+        },
+
+
     },
 }
 

@@ -1,14 +1,19 @@
 #coding=utf-8
 import logging
 import subprocess
+import sys
+#sys.path.append('..')
+
+
 logger = logging.getLogger('app')
 state_logger = logging.getLogger('state')
 
+#from video import settings
+#settings.configure()
 
+#from video.settings import BT_CLIENT
 
-from video.settings import BT_CLIENT
-
-port = BT_CLIENT['port']
+#port = BT_CLIENT['port']
 
 #import libtorrent as l0t
 ##BT_SESSION = lt.session()
@@ -22,6 +27,8 @@ import threading
 import os
 
 import rtorrent
+import socket
+socket.setdefaulttimeout(1) 
 sgi = rtorrent.RTorrent('http://localhost/RPC2/')
 
 
@@ -32,13 +39,20 @@ def compress(save_path):
         for i in files:
             f = os.path.join(root, i)         
             r, n = check_format(f)
+            f = f.replace(' ', '\ ').replace('(', '\(').replace(')', '\)')
+            n = n.replace(' ', '\ ').replace('(', '\(').replace(')', '\)')
+
             if r:
                 cmd = 'ffmpeg -i %s -vf scale=320:-1 -y -c:v libx264  -b:v 100k -b:a 50k %s' %(f, n) 
                 print cmd
                 try:
-                    logger.info(%cmd)
-                    p=subprocess.Popen(cmd, shell=True)
-                    ret = p.wait()
+                    logger.info(cmd)
+                    #p=subprocess.Popen(cmd, shell=True)
+                    #ret = p.wait()
+                    #ret = subprocess.call(cmd, shell=True)
+                    ret = subprocess.check_call(cmd, shell=True)
+                    logger.info('ffmpeg ret:%s' %ret)
+ 
                 except Exception, e:
                     import traceback
                     ex = traceback.format_exc()
@@ -48,15 +62,30 @@ def compress(save_path):
 
 def pool():
     while True:
-        l=sgi.get_torrents()
+        logger.info('poll ...')
+        l = []
+        #'''
+        try:
+            logger.info('get_torrent begin ...')
+            l=sgi.get_torrents()
+            logger.info('get_torrent_end ...')
+        except:
+            import traceback
+            ex = traceback.format_exc()
+            logger.error(ex)
+        
+        logger.info('Torrent Info List:')
         info = ''
         for i in l:
             try:
-                info += '\r%s %s %s %s %s' %(i.get_state(), i.get_down_rate(), i.get_down_total, i.is_complete(), i.info_hash)
+                info = '\r%s %s %s %s %s' %(i.get_state(), i.get_down_rate(), i.get_down_total, i.is_complete(), i.info_hash)
+                logger.info(info)
+
                 if i.is_complete() == True:
                     # 1. finish 
                     # 2. compress
                     # 3. rsync
+                    logger.info('process finish...%s' %i.info_hash)
                     compress(i.get_directory())
                     from service.models import File
                     f = File()
@@ -70,8 +99,21 @@ def pool():
                 ex = traceback.format_exc()
                 logger.error(ex)
                 continue
-        state_logger.info(info)
-        time.sleep(5)
+        logger.info('Torrent Info List End')
+        try:
+            logger.info('Compress Queue')
+            path = TASK_QUEUE.get_nowait()
+            logger.info('get_path %s' %path)
+            compress(path)
+        except Queue.Empty:
+            pass
+        except Exception, e:
+            import traceback
+            ex = traceback.format_exc()
+            logger.error(ex)
+        #'''
+        #state_logger.info(info)
+        time.sleep(1)
  
 
 
@@ -106,7 +148,7 @@ class ThreadPool:
                  'down_rate':  t.get_down_rate(),
                  'down_total': t.get_down_total(),
                  'ratio': t.get_ratio(),
-                 'size_bytes', t.get_size_bytes(),
+                 'size_bytes': t.get_size_bytes(),
                 }
             return data
         except Exception, e:
@@ -127,7 +169,7 @@ class ThreadPool:
                      'down_rate':  t.get_down_rate(),
                      'down_total': t.get_down_total(),
                      'ratio': t.get_ratio(),
-                     'size_bytes', t.get_size_bytes(),
+                     'size_bytes': t.get_size_bytes(),
                      }
                 state_list.append(state)
             except Exception, e:
@@ -139,6 +181,9 @@ class ThreadPool:
 
 
     def delete_task(self, hashinfo):
+        #while True:
+        #    state_logger.info('test')
+        #    time.sleep(1) 
         try:
             t = sgi.find_torrent(hashinfo)
             t.erase()
@@ -147,10 +192,13 @@ class ThreadPool:
             ex = traceback.format_exc()
             logger.error(ex)
  
-
+    def compress(self, path):
+        logger.info('put task %s' %path)
+        TASK_QUEUE.put(path)
+        #compress(i.get_directory())
 
 if __name__ == '__main__':
-    compress()
+    compress('/home/downloads/134467F8/')
 
  
 

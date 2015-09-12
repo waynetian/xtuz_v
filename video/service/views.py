@@ -60,6 +60,13 @@ class DeleteView(TemplateView):
         tp.delete_task(hashinfo)  
         return HttpResponse('ok')
 
+class CompressView(TemplateView):
+    def get(self, request):
+        path = request.GET.get('path', None)
+        tp.compress(path)  
+        return HttpResponse('ok')
+
+
 
  
 from django.core.exceptions import ObjectDoesNotExist

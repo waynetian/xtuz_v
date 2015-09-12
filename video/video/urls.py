@@ -15,6 +15,8 @@ urlpatterns = [
 
     url(r'^query/(?P<hashinfo>\w{40})/', QueryView.as_view()),
 
+    url(r'^compress/', CompressView.as_view()),
+
 
 
 

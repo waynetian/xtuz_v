@@ -39,18 +39,21 @@ def compress(save_path):
         for i in files:
             f = os.path.join(root, i)         
             r, n = check_format(f)
-            f = f.replace(' ', '\ ').replace('(', '\(').replace(')', '\)')
-            n = n.replace(' ', '\ ').replace('(', '\(').replace(')', '\)')
+            #f = f.replace(' ', '\ ').replace('(', '\(').replace(')', '\)')
+            #n = n.replace(' ', '\ ').replace('(', '\(').replace(')', '\)')
 
             if r:
-                cmd = 'ffmpeg -i %s -vf scale=320:-1 -y -c:v libx264  -b:v 100k -b:a 50k %s' %(f, n) 
+                cmd = r'ffmpeg -i %s -vf scale=320:-1 -y -c:v libx264  -b:v 100k -b:a 50k %s' %(f, n) 
+                #lst = ['ffmpeg', "-i", f, "-vf", "scale=320:-1", "-y", "-c:v", "libx264", "-b:v", "100k", "-b:a", "50k", n]
                 print cmd
                 try:
                     logger.info(cmd)
                     #p=subprocess.Popen(cmd, shell=True)
                     #ret = p.wait()
-                    #ret = subprocess.call(cmd, shell=True)
                     ret = subprocess.check_call(cmd, shell=True)
+                    #import shlex
+                    #lst = shlex.split(cmd)
+                    #ret = subprocess.check_call(lst, shell=True)
                     logger.info('ffmpeg ret:%s' %ret)
  
                 except Exception, e:
